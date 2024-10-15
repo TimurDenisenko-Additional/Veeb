@@ -7,7 +7,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class ToodeController : ControllerBase
     {
-        private static List<Toode> toodeDB = [new(1, "Koola", 1.5, true), new(2, "Jäätis", 5, true)];
+        private static List<Toode> toodeDB = [new(0, "Koola", 1.5, true), new(1, "Jäätis", 5, true)];
         private static readonly List<Toode> backup = [];
 
         private static void DeepCopy(List<Toode> from, List<Toode> to)
@@ -22,6 +22,13 @@ namespace Veeb.Controllers
             });
         }
         private static void CreateBackup() => DeepCopy(toodeDB, backup);
+        private static void Reorder()
+        {
+            for (int i = 0; i < toodeDB.Count; i++)
+            {
+                toodeDB[i].Id = i;
+            }
+        }
 
         // GET: toode
         [HttpGet]
@@ -32,7 +39,7 @@ namespace Veeb.Controllers
         public Toode GetToode(int id) => toodeDB.ElementAtOrDefault(id) ?? new Toode();
 
         // GET: toode/suurenda-hinda/id
-        [HttpGet("suurenda-hinda/{id}")]
+        [HttpPatch("suurenda-hinda/{id}")]
         public Toode SuurendaHinda(int id)
         {
             CreateBackup();
@@ -44,7 +51,7 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/change-active/id
-        [HttpGet("change-active/{id}")]
+        [HttpPatch("change-active/{id}")]
         public Toode ChangeActive(int id)
         {
             CreateBackup();
@@ -56,7 +63,7 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/change-name/id
-        [HttpGet("change-name/{id}/{newName}")]
+        [HttpPatch("change-name/{id}/{newName}")]
         public Toode ChangeName(int id, string newName)
         {
             CreateBackup();
@@ -68,7 +75,7 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/multiply-price/id/factor
-        [HttpGet("multiply-price/{id}/{factor}")]
+        [HttpPatch("multiply-price/{id}/{factor}")]
         public Toode MultiplyPrice(int id, int factor)
         {
             CreateBackup();
@@ -80,23 +87,25 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/delete/id
-        [HttpGet("delete/{id}")]
-        public string Delete(int id)
+        [HttpDelete("delete/{id}")]
+        public List<Toode> Delete(int id)
         {
             CreateBackup();
             Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return "The object missing";
+                return [];
             toodeDB.RemoveAt(id);
-            return $"Toode: \"{toode.Name} {toode.Price}$\" was deleted!";
+            Reorder();
+            return toodeDB;
         }
 
-        // GET: toode/create/id/name/price/state
-        [HttpGet("create/{id}/{name}/{price}/{state}")]
-        public List<Toode> Create(int id, string name, double price, bool state)
+        // GET: toode/create/name/price/state
+        [HttpPost("create/{name}/{price}/{state}")]
+        public List<Toode> Create(string name, double price, bool state)
         {
             CreateBackup();
-            toodeDB.Add(new Toode(id, name, price, state));
+            toodeDB.Add(new Toode(toodeDB.Count, name, price, state));
+            Reorder();
             return toodeDB;
         }
 
@@ -111,7 +120,7 @@ namespace Veeb.Controllers
         //}
 
         // GET: toode/rate/1.5
-        [HttpGet("rate/{rate}")]
+        [HttpPatch("rate/{rate}")]
         public List<Toode> ChangeRate(double rate)
         {
             CreateBackup();
@@ -124,7 +133,7 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/clear
-        [HttpGet("clear")]
+        [HttpDelete("clear")]
         public string ClearTable()
         {
             CreateBackup();
@@ -133,7 +142,7 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/state-manage/true
-        [HttpGet("state-manage")]
+        [HttpPatch("state-manage")]
         public string StateManage(bool state)
         {
             CreateBackup();
@@ -146,7 +155,7 @@ namespace Veeb.Controllers
         }
 
         // GET: toode/backup
-        [HttpGet("backup")]
+        [HttpPost("backup")]
         public List<Toode> Backup()
         {
             if (backup.Count > 0)
@@ -155,7 +164,7 @@ namespace Veeb.Controllers
         }
 
         //GET: toode/max-price
-        [HttpGet("max-price")]
+        [HttpPatch("max-price")]
         public Toode MaxPrice()
         {
             Toode toode = new();
