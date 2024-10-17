@@ -38,16 +38,15 @@ namespace Veeb.Controllers
         [HttpGet("{id}")]
         public Toode GetToode(int id) => toodeDB.ElementAtOrDefault(id) ?? new Toode();
 
-        // GET: toode/suurenda-hinda/id
-        [HttpPatch("suurenda-hinda/{id}")]
-        public Toode SuurendaHinda(int id)
+        // GET: toode/suurenda-hinda/id/price
+        [HttpPatch("suurenda-hinda/{id}/{price}")]
+        public List<Toode> SuurendaHinda(int id, float price)
         {
             CreateBackup();
             Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
-            if (toode.Id == -1)
-                return toode;
-            toode.Price++;
-            return toode;
+            if (toode.Id != -1)
+                toode.Price += price;
+            return toodeDB;
         }
 
         // GET: toode/change-active/id
