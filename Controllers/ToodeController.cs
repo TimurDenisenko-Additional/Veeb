@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Numerics;
+using System.Xml.Linq;
 using Veeb.Models;
 
 namespace Veeb.Controllers
@@ -51,38 +53,38 @@ namespace Veeb.Controllers
 
         // GET: toode/change-active/id
         [HttpPatch("change-active/{id}")]
-        public Toode ChangeActive(int id)
+        public List<Toode> ChangeActive(int id)
         {
             CreateBackup();
             Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return toode;
+                return toodeDB;
             toode.IsActive = !toode.IsActive;
-            return toode;
+            return toodeDB;
         }
 
         // GET: toode/change-name/id
         [HttpPatch("change-name/{id}/{newName}")]
-        public Toode ChangeName(int id, string newName)
+        public List<Toode> ChangeName(int id, string newName)
         {
             CreateBackup();
             Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return toode;
+                return toodeDB;
             toode.Name = newName;
-            return toode;
+            return toodeDB;
         }
 
         // GET: toode/multiply-price/id/factor
         [HttpPatch("multiply-price/{id}/{factor}")]
-        public Toode MultiplyPrice(int id, int factor)
+        public List<Toode> MultiplyPrice(int id, int factor)
         {
             CreateBackup();
             Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return toode;
-            toode.Price *= factor;
-            return toode;
+                return toodeDB;
+            toode.Price = Math.Round(toode.Price * factor, 2); 
+            return toodeDB;
         }
 
         // GET: toode/delete/id
@@ -125,7 +127,7 @@ namespace Veeb.Controllers
             CreateBackup();
             toodeDB = toodeDB.Select(x =>
             {
-                x.Price *= rate;
+                x.Price = Math.Round(x.Price * rate, 2);
                 return x;
             }).ToList();
             return toodeDB;
@@ -133,16 +135,16 @@ namespace Veeb.Controllers
 
         // GET: toode/clear
         [HttpDelete("clear")]
-        public string ClearTable()
+        public List<Toode> ClearTable()
         {
             CreateBackup();
             toodeDB.Clear();
-            return "The table has been cleared";
+            return toodeDB;
         }
 
         // GET: toode/state-manage/true
-        [HttpPatch("state-manage")]
-        public string StateManage(bool state)
+        [HttpPatch("state-manage/{state}")]
+        public List<Toode> StateManage(bool state)
         {
             CreateBackup();
             toodeDB = toodeDB.Select(x =>
@@ -150,7 +152,7 @@ namespace Veeb.Controllers
                 x.IsActive = state;
                 return x;
             }).ToList();
-            return $"All items have been {(state ? "enabled" : "disabled")}";
+            return toodeDB;
         }
 
         // GET: toode/backup
@@ -163,8 +165,8 @@ namespace Veeb.Controllers
         }
 
         //GET: toode/max-price
-        [HttpPatch("max-price")]
-        public Toode MaxPrice()
+        [HttpGet("max-price")]
+        public string MaxPrice()
         {
             Toode toode = new();
             foreach (Toode item in toodeDB)
@@ -172,7 +174,7 @@ namespace Veeb.Controllers
                 if (item.Price > toode.Price)
                     toode = item;
             }
-            return toode;
+            return $"Kõrgeim hind on tootel '{toode.Name}' indeksiga {toode.Id}, selle hind on {toode.Price}.";
         }
     }
 }
