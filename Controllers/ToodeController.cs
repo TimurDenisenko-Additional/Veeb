@@ -36,6 +36,10 @@ namespace Veeb.Controllers
         [HttpGet]
         public List<Toode> GetTooded() => toodeDB;
 
+        // GET: toode/getActiveTooded
+        [HttpGet("getActiveTooded")]
+        public List<Toode> GetActiveTooded() => toodeDB.Where(x => x.IsActive).ToList();
+
         // GET: toode/id
         [HttpGet("{id}")]
         public Toode GetToode(int id) => toodeDB.ElementAtOrDefault(id) ?? new Toode();
