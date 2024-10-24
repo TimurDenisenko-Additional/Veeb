@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Linq;
 using Veeb.Models;
 
 namespace Veeb.Controllers
@@ -41,7 +40,7 @@ namespace Veeb.Controllers
         [HttpGet("{id}")]
         public Kasutaja GetKasutaja(int id) => kasutajaDB.ElementAtOrDefault(id) ?? new();
 
-        // GET: kasutaja/delete/id
+        // DELETE: kasutaja/delete/id
         [HttpDelete("delete/{id}")]
         public List<Kasutaja> Delete(int id)
         {
@@ -54,7 +53,7 @@ namespace Veeb.Controllers
             return kasutajaDB;
         }
 
-        // GET: kasutaja/create/username/password/firstname/lastname
+        // POST: kasutaja/create/username/password/firstname/lastname
         [HttpPost("create/{username}/{password}/{firstname}/{lastname}")]
         public List<Kasutaja> Create(string username, string password, string firstname, string lastname)
         {
@@ -66,17 +65,36 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/login/username/password
         [HttpGet("login/{username}/{password}")]
-        public string Login(string username, string password)
+        public bool Login(string username, string password)
         {
             Kasutaja checkingKasutaja = kasutajaDB.Where(x => x.Username == username)?.ElementAtOrDefault(0) ?? new();
             if (checkingKasutaja.Password == password)
             {
                 isLogged = true;
                 currentKasutajaId = checkingKasutaja.Id;
-                return "Edu! Ole sisse logitud";
+                //return "Edu! Ole sisse logitud";
+                return true;
+            }
+                //return "Ebaõnnestumine! Midagi on valesti";
+            return false;
+        }
+
+        // POST: kasutaja/register/username/password/firstname/lastname
+        [HttpPost("register/{username}/{password}/{firstname}/{lastname}")]
+        public bool Register(string username, string password, string firstname, string lastname)
+        {
+            if (kasutajaDB.Where(x => x.Username == username).Count() == 0)
+            {
+                Create(username, password, firstname, lastname);
+                isLogged = true;
+                currentKasutajaId = kasutajaDB.Count;
             }
             else
-                return "Ebaõnnestumine! Midagi on valesti";
+            {
+                isLogged = false;
+                currentKasutajaId = -1;
+            }
+            return isLogged;
         }
 
         // GET: kasutaja/logout
@@ -96,5 +114,9 @@ namespace Veeb.Controllers
         // GET: kasutaja/get-current
         [HttpGet("get-current")]
         public Kasutaja GetCurrent() => GetKasutaja(currentKasutajaId);
+
+        // GET: kasutaja/is-auth
+        [HttpGet("is-auth")]
+        public bool IsLogged() => isLogged;
     }
 }
