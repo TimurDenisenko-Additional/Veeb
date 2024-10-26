@@ -72,11 +72,12 @@ namespace Veeb.Controllers
             {
                 isLogged = true;
                 currentKasutajaId = checkingKasutaja.Id;
-                //return "Edu! Ole sisse logitud";
                 return true;
             }
-                //return "Ebaõnnestumine! Midagi on valesti";
-            return false;
+            else
+            {
+                return false;
+            }
         }
 
         // POST: kasutaja/register/username/password/firstname/lastname
