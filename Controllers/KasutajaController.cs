@@ -7,7 +7,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class KasutajaController : ControllerBase
     {
-        private static List<Kasutaja> kasutajaDB = [new(0, "Admin", "1234", "Adam", "Adamson"), new(1, "Goldik", "1234", "Goldar", "Lusa")];
+        private static List<Kasutaja> kasutajaDB = [new(0, "Admin", "1234", "Adam", "Adamson", true), new(1, "Goldik", "1234", "Goldar", "Lusa")];
         private static readonly List<Kasutaja> backup = [];
         private static bool isLogged = false;
         private static int currentKasutajaId = -1;
@@ -84,7 +84,7 @@ namespace Veeb.Controllers
         [HttpPost("register/{username}/{password}/{firstname}/{lastname}")]
         public bool Register(string username, string password, string firstname, string lastname)
         {
-            if (kasutajaDB.Where(x => x.Username == username).Count() == 0)
+            if (!kasutajaDB.Where(x => x.Username == username).Any())
             {
                 Create(username, password, firstname, lastname);
                 isLogged = true;
@@ -119,5 +119,8 @@ namespace Veeb.Controllers
         // GET: kasutaja/is-auth
         [HttpGet("is-auth")]
         public bool IsLogged() => isLogged;
+
+        [HttpGet("is-admin")]
+        public bool IsAdmin() => GetKasutaja(currentKasutajaId).IsAdmin;
     }
 }
