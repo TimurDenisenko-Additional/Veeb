@@ -35,7 +35,7 @@ namespace Veeb.Controllers
 
         // GET: order/id
         [HttpGet("{id}")]
-        public IActionResult GetOrder(int id) => orderDB.ElementAtOrDefault(id) == null ? Ok(orderDB.ElementAtOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
+        public IActionResult GetOrder(int id) => orderDB.ElementAtOrDefault(id) != null ? Ok(orderDB.ElementAtOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
 
         // DELETE: order/delete/id
         [HttpDelete("delete/{id}")]
@@ -52,16 +52,25 @@ namespace Veeb.Controllers
 
         // POST: order/create/username/password/firstname/lastname
         [HttpPost("create/{kasutajaId}/{toodeId}")]
-        public IActionResult Create(int kId, int tId)
+        public IActionResult Create(int kasutajaId, int toodeId)
         {
-            if (KasutajaController.kasutajaDB.ElementAtOrDefault(kId) != null)
+            if (KasutajaController.kasutajaDB.ElementAtOrDefault(kasutajaId) == null)
                 return NotFound(new { message = "Kasutajat ei leitud" });
-            else if (ToodeController.toodeDB.ElementAtOrDefault(tId) != null)
+            else if (ToodeController.toodeDB.ElementAtOrDefault(toodeId) == null)
                 return NotFound(new { message = "Toodet ei leitud" });
             CreateBackup();
-            orderDB.Add(new(orderDB.Count, kId, tId));
+            orderDB.Add(new(orderDB.Count, kasutajaId, toodeId));
             Reorder();
             return Ok(orderDB);
+        }
+
+        // GET: order/backup
+        [HttpPost("backup")]
+        public List<Order> Backup()
+        {
+            if (backup.Count > 0)
+                DeepCopy(backup, orderDB);
+            return orderDB;
         }
     }
 }

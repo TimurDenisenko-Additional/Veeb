@@ -120,7 +120,17 @@ namespace Veeb.Controllers
         [HttpGet("is-auth")]
         public bool IsLogged() => isLogged;
 
+        // GET: kasutaja/is-admin
         [HttpGet("is-admin")]
         public bool IsAdmin() => GetKasutaja(currentKasutajaId).IsAdmin;
+
+        // GET: kasutaja/backup
+        [HttpPost("backup")]
+        public List<Kasutaja> Backup()
+        {
+            if (backup.Count > 0)
+                DeepCopy(backup, kasutajaDB);
+            return kasutajaDB;
+        }
     }
 }
