@@ -7,7 +7,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class KasutajaController : ControllerBase
     {
-        private static List<Kasutaja> kasutajaDB = [new(0, "Admin", "1234", "Adam", "Adamson", true), new(1, "Goldik", "1234", "Goldar", "Lusa")];
+        internal static List<Kasutaja> kasutajaDB = [new(0, "Admin", "1234", "Adam", "Adamson", true), new(1, "Goldik", "1234", "Goldar", "Lusa")];
         private static readonly List<Kasutaja> backup = [];
         private static bool isLogged = false;
         private static int currentKasutajaId = -1;

@@ -35,29 +35,33 @@ namespace Veeb.Controllers
 
         // GET: order/id
         [HttpGet("{id}")]
-        public Order GetOrder(int id) => orderDB.ElementAtOrDefault(id) ?? new();
+        public IActionResult GetOrder(int id) => orderDB.ElementAtOrDefault(id) == null ? Ok(orderDB.ElementAtOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
 
         // DELETE: order/delete/id
         [HttpDelete("delete/{id}")]
-        public List<Order> Delete(int id)
+        public IActionResult Delete(int id)
         {
             CreateBackup();
             Order order = orderDB.ElementAtOrDefault(id) ?? new();
             if (order.Id == -1)
-                return [];
+                return NotFound(new { message = "Tellimust ei leitud" });
             orderDB.RemoveAt(id);
             Reorder();
-            return orderDB;
+            return Ok(orderDB);
         }
 
         // POST: order/create/username/password/firstname/lastname
         [HttpPost("create/{kasutajaId}/{toodeId}")]
-        public List<Order> Create(int kId, int tId)
+        public IActionResult Create(int kId, int tId)
         {
+            if (KasutajaController.kasutajaDB.ElementAtOrDefault(kId) != null)
+                return NotFound(new { message = "Kasutajat ei leitud" });
+            else if (ToodeController.toodeDB.ElementAtOrDefault(tId) != null)
+                return NotFound(new { message = "Toodet ei leitud" });
             CreateBackup();
             orderDB.Add(new(orderDB.Count, kId, tId));
             Reorder();
-            return orderDB;
+            return Ok(orderDB);
         }
     }
 }

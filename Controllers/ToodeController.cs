@@ -9,7 +9,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class ToodeController : ControllerBase
     {
-        private static List<Toode> toodeDB = [new(0, "Koola", 1.5, true), new(1, "Jäätis", 5, true)];
+        internal static List<Toode> toodeDB = [new(0, "Koola", 1.5, true), new(1, "Jäätis", 5, true)];
         private static readonly List<Toode> backup = [];
 
         private static void DeepCopy(List<Toode> from, List<Toode> to)
