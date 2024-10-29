@@ -40,30 +40,34 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/id
         [HttpGet("{id}")]
-        public Kasutaja GetKasutaja(int id) => kasutajaDB.ElementAtOrDefault(id) ?? new();
+        public IActionResult GetKasutaja(int id) => kasutajaDB.ElementAtOrDefault(id) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(kasutajaDB.ElementAtOrDefault(id));
 
         // DELETE: kasutaja/delete/id
         [HttpDelete("delete/{id}")]
-        public List<Kasutaja> Delete(int id)
+        public IActionResult Delete(int id)
         {
             CreateBackup();
             Kasutaja kasutaja = kasutajaDB.ElementAtOrDefault(id) ?? new();
             if (kasutaja.Id == -1)
-                return [];
+                return NotFound(new { message = "Kasutajat ei leitud" });
             kasutajaDB.RemoveAt(id);
             OrderController.Cleaning(true, id);
             Reorder();
-            return kasutajaDB;
+            return Ok(kasutajaDB);
         }
 
         // POST: kasutaja/create/username/password/firstname/lastname
         [HttpPost("create/{username}/{password}/{firstname}/{lastname}")]
-        public List<Kasutaja> Create(string username, string password, string firstname, string lastname)
+        public IActionResult Create(string username, string password, string firstname, string lastname)
         {
-            CreateBackup();
-            kasutajaDB.Add(new(kasutajaDB.Count, username, password, firstname, lastname));
-            Reorder();
-            return kasutajaDB;
+            if (!kasutajaDB.Where(x => x.Username == username).Any())
+            {
+                CreateBackup();
+                kasutajaDB.Add(new(kasutajaDB.Count, username, password, firstname, lastname));
+                Reorder();
+                return Ok(kasutajaDB);
+            }
+            return NotFound(new { message = "Dubleeritud kasutaja" });
         }
 
         // GET: kasutaja/login/username/password
@@ -85,20 +89,21 @@ namespace Veeb.Controllers
 
         // POST: kasutaja/register/username/password/firstname/lastname
         [HttpPost("register/{username}/{password}/{firstname}/{lastname}")]
-        public bool Register(string username, string password, string firstname, string lastname)
+        public IActionResult Register(string username, string password, string firstname, string lastname)
         {
             if (!kasutajaDB.Where(x => x.Username == username).Any())
             {
                 Create(username, password, firstname, lastname);
                 isLogged = true;
                 currentKasutajaId = kasutajaDB.Count;
+                return Ok(isLogged);
             }
             else
             {
                 isLogged = false;
                 currentKasutajaId = -1;
+                return NotFound(new { message = "Dubleeritud kasutaja" });
             }
-            return isLogged;
         }
 
         // GET: kasutaja/logout
@@ -117,7 +122,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/get-current
         [HttpGet("get-current")]
-        public Kasutaja GetCurrent() => GetKasutaja(currentKasutajaId);
+        public IActionResult GetCurrent() => kasutajaDB.ElementAtOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(kasutajaDB.ElementAtOrDefault(currentKasutajaId));
 
         // GET: kasutaja/is-auth
         [HttpGet("is-auth")]
@@ -125,7 +130,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/is-admin
         [HttpGet("is-admin")]
-        public bool IsAdmin() => GetKasutaja(currentKasutajaId).IsAdmin;
+        public bool IsAdmin() => (kasutajaDB.ElementAtOrDefault(currentKasutajaId) ?? new()).IsAdmin;
 
         // POST: kasutaja/backup
         [HttpPost("backup")]
