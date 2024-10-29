@@ -100,6 +100,7 @@ namespace Veeb.Controllers
             if (toode.Id == -1)
                 return [];
             toodeDB.RemoveAt(id);
+            OrderController.Cleaning(false, id);
             Reorder();
             return toodeDB;
         }
@@ -142,6 +143,7 @@ namespace Veeb.Controllers
         public List<Toode> ClearTable()
         {
             CreateBackup();
+            toodeDB.ForEach(x => OrderController.Cleaning(false, x.Id));
             toodeDB.Clear();
             return toodeDB;
         }

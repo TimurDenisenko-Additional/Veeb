@@ -7,7 +7,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class OrderController : ControllerBase
     {
-        private static List<Order> orderDB = [new(0, 0, 0)];
+        internal static List<Order> orderDB = [new(0, 0, 0)];
         private static readonly List<Order> backup = [];
         private static void DeepCopy(List<Order> from, List<Order> to)
         {
@@ -71,6 +71,32 @@ namespace Veeb.Controllers
             if (backup.Count > 0)
                 DeepCopy(backup, orderDB);
             return orderDB;
+        }
+
+        public static void Cleaning(bool isKasutaja, int deletedId)
+        {
+            foreach (Order order in orderDB.ToList())
+            {
+                if ((isKasutaja && order.KasutajaId == deletedId) || (!isKasutaja && order.ToodeId == deletedId))
+                {
+                    orderDB.Remove(order);
+                }
+            }
+            Reorder();
+        }
+        public static void OtherReordering(bool isKasutaja, int reorderId, int newId)
+        {
+            foreach (Order order in orderDB.ToList()) 
+            {
+                if (isKasutaja && order.KasutajaId == reorderId)
+                {
+                    order.KasutajaId = newId;
+                }
+                else if (!isKasutaja && order.ToodeId == reorderId)
+                {
+                    order.ToodeId = newId;
+                }
+            }
         }
     }
 }

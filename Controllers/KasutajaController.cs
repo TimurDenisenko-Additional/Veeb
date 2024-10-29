@@ -28,7 +28,9 @@ namespace Veeb.Controllers
         {
             for (int i = 0; i < kasutajaDB.Count; i++)
             {
+                int oldId = kasutajaDB[i].Id;
                 kasutajaDB[i].Id = i;
+                OrderController.OtherReordering(true, oldId, i);
             }
         }
 
@@ -49,6 +51,7 @@ namespace Veeb.Controllers
             if (kasutaja.Id == -1)
                 return [];
             kasutajaDB.RemoveAt(id);
+            OrderController.Cleaning(true, id);
             Reorder();
             return kasutajaDB;
         }
@@ -124,7 +127,7 @@ namespace Veeb.Controllers
         [HttpGet("is-admin")]
         public bool IsAdmin() => GetKasutaja(currentKasutajaId).IsAdmin;
 
-        // GET: kasutaja/backup
+        // POST: kasutaja/backup
         [HttpPost("backup")]
         public List<Kasutaja> Backup()
         {
