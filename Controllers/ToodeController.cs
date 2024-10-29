@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Numerics;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 using Veeb.Models;
 
@@ -28,7 +29,9 @@ namespace Veeb.Controllers
         {
             for (int i = 0; i < toodeDB.Count; i++)
             {
+                int oldId = toodeDB[i].Id;
                 toodeDB[i].Id = i;
+                OrderController.OtherReordering(true, oldId, i);
             }
         }
 
