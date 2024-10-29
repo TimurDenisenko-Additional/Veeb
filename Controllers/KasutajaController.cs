@@ -40,7 +40,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/id
         [HttpGet("{id}")]
-        public IActionResult GetKasutaja(int id) => kasutajaDB.ElementAtOrDefault(id) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(kasutajaDB.ElementAtOrDefault(id));
+        public IActionResult GetKasutaja(int id) => kasutajaDB.ElementAtOrDefault(id) == null ? BadRequest(new { message = "Kasutajat ei leitud" }) : Ok(kasutajaDB.ElementAtOrDefault(id));
 
         // DELETE: kasutaja/delete/id
         [HttpDelete("delete/{id}")]
@@ -49,7 +49,7 @@ namespace Veeb.Controllers
             CreateBackup();
             Kasutaja kasutaja = kasutajaDB.ElementAtOrDefault(id) ?? new();
             if (kasutaja.Id == -1)
-                return NotFound(new { message = "Kasutajat ei leitud" });
+                return BadRequest(new { message = "Kasutajat ei leitud" });
             kasutajaDB.RemoveAt(id);
             OrderController.Cleaning(true, id);
             Reorder();
@@ -67,23 +67,23 @@ namespace Veeb.Controllers
                 Reorder();
                 return Ok(kasutajaDB);
             }
-            return NotFound(new { message = "Dubleeritud kasutaja" });
+            return BadRequest(new { message = "Dubleeritud kasutaja" });
         }
 
         // GET: kasutaja/login/username/password
         [HttpGet("login/{username}/{password}")]
-        public bool Login(string username, string password)
+        public IActionResult Login(string username, string password)
         {
             Kasutaja checkingKasutaja = kasutajaDB.Where(x => x.Username == username)?.ElementAtOrDefault(0) ?? new();
             if (checkingKasutaja.Password == password)
             {
                 isLogged = true;
                 currentKasutajaId = checkingKasutaja.Id;
-                return true;
+                return Ok(true);
             }
             else
             {
-                return false;
+                return BadRequest("Vale parool või kasutajanimi");
             }
         }
 
@@ -102,7 +102,7 @@ namespace Veeb.Controllers
             {
                 isLogged = false;
                 currentKasutajaId = -1;
-                return NotFound(new { message = "Dubleeritud kasutaja" });
+                return BadRequest(new { message = "Dubleeritud kasutaja" });
             }
         }
 
