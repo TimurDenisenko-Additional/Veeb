@@ -45,7 +45,7 @@ namespace Veeb.Controllers
 
         // GET: toode/id
         [HttpGet("{id}")]
-        public Toode GetToode(int id) => toodeDB.ElementAtOrDefault(id) ?? new Toode();
+        public IActionResult GetToode(int id) => toodeDB.ElementAtOrDefault(id) == null ? NotFound(new { message = "Toodet ei leitud" }) : Ok(toodeDB.ElementAtOrDefault(id));
 
         // GET: toode/suurenda-hinda/id/price
         [HttpPatch("suurenda-hinda/{id}/{price}")]
@@ -96,16 +96,16 @@ namespace Veeb.Controllers
 
         // GET: toode/delete/id
         [HttpDelete("delete/{id}")]
-        public List<Toode> Delete(int id)
+        public IActionResult Delete(int id)
         {
             CreateBackup();
             Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return [];
+                return NotFound(new { message = "Toodet ei leitud" });
             toodeDB.RemoveAt(id);
             OrderController.Cleaning(false, id);
             Reorder();
-            return toodeDB;
+            return Ok(toodeDB);
         }
 
         // GET: toode/create/name/price/state
