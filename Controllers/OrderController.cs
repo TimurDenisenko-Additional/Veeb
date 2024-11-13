@@ -36,18 +36,18 @@ namespace Veeb.Controllers
             return Ok(orderDB);
         }
 
-        // POST: order/create/username/password/firstname/lastname
-        [HttpPost("create/{kasutajaId}/{toodeId}")]
-        public IActionResult Create(int kasutajaId, int toodeId)
-        {
-            if (KasutajaController.kasutajaDB.ElementAtOrDefault(kasutajaId) == null)
-                return NotFound(new { message = "Kasutajat ei leitud" });
-            else if (ToodeController.toodeDB.ElementAtOrDefault(toodeId) == null)
-                return NotFound(new { message = "Toodet ei leitud" });
-            orderDB.Add(new(orderDB.Count, kasutajaId, toodeId));
-            Reorder();
-            return Ok(orderDB);
-        }
+        //// POST: order/create/username/password/firstname/lastname
+        //[HttpPost("create/{kasutajaId}/{toodeId}")]
+        //public IActionResult Create(int kasutajaId, int toodeId)
+        //{
+        //    if (KasutajaController.kasutajaDB.ElementAtOrDefault(kasutajaId) == null)
+        //        return NotFound(new { message = "Kasutajat ei leitud" });
+        //    else if (ToodeController.toodeDB.ElementAtOrDefault(toodeId) == null)
+        //        return NotFound(new { message = "Toodet ei leitud" });
+        //    orderDB.Add(new(orderDB.Count, kasutajaId, toodeId));
+        //    Reorder();
+        //    return Ok(orderDB);
+        //}
         public static void Cleaning(bool isKasutaja, int deletedId)
         {
             foreach (Order order in orderDB.ToList())

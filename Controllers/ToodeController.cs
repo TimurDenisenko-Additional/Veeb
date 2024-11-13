@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Numerics;
-using System.Security.Cryptography;
-using System.Xml.Linq;
+using Microsoft.EntityFrameworkCore;
 using Veeb.Models;
+using Veeb.Models.DB;
 
 namespace Veeb.Controllers
 {
@@ -10,10 +9,14 @@ namespace Veeb.Controllers
     [ApiController]
     public class ToodeController : ControllerBase
     {
-        internal static List<Toode> toodeDB = [new(0, "Koola", 1.5, true), new(1, "Jäätis", 5, true)];
+        private readonly DBContext DB;
         private static readonly List<Toode> backup = [];
+        public ToodeController(DBContext db) 
+        {
+            DB = db;
+        }
 
-        private static void DeepCopy(List<Toode> from, List<Toode> to)
+        private void DeepCopy(List<Toode> from, List<Toode> to)
         {
             if (from.SequenceEqual(to))
                 return;
@@ -24,38 +27,38 @@ namespace Veeb.Controllers
                 to.Add(new Toode(x.Id, x.Name, x.Price, x.IsActive));
             });
         }
-        private static void CreateBackup() => DeepCopy(toodeDB, backup);
-        private static void Reorder()
+        private void CreateBackup() => DeepCopy(DB.Tooded.ToList(), backup);
+        private void Reorder()
         {
-            for (int i = 0; i < toodeDB.Count; i++)
+            for (int i = 0; i < DB.Tooded.ToList().Count; i++)
             {
-                int oldId = toodeDB[i].Id;
-                toodeDB[i].Id = i;
+                int oldId = DB.Tooded.ToList()[i].Id;
+                DB.Tooded.ToList()[i].Id = i;
                 OrderController.OtherReordering(true, oldId, i);
             }
         }
 
         // GET: toode
         [HttpGet]
-        public List<Toode> GetTooded() => toodeDB;
+        public List<Toode> GetTooded() => DB.Tooded.ToList();
 
         // GET: toode/getActiveTooded
         [HttpGet("getActiveTooded")]
-        public List<Toode> GetActiveTooded() => toodeDB.Where(x => x.IsActive).ToList();
+        public List<Toode> GetActiveTooded() => DB.Tooded.ToList().Where(x => x.IsActive).ToList();
 
         // GET: toode/id
         [HttpGet("{id}")]
-        public IActionResult GetToode(int id) => toodeDB.ElementAtOrDefault(id) == null ? NotFound(new { message = "Toodet ei leitud" }) : Ok(toodeDB.ElementAtOrDefault(id));
+        public IActionResult GetToode(int id) => DB.Tooded.ToList().ElementAtOrDefault(id) == null ? NotFound(new { message = "Toodet ei leitud" }) : Ok(DB.Tooded.ToList().ElementAtOrDefault(id));
 
         // GET: toode/suurenda-hinda/id/price
         [HttpPatch("suurenda-hinda/{id}/{price}")]
         public List<Toode> SuurendaHinda(int id, float price)
         {
             CreateBackup();
-            Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
+            Toode toode = DB.Tooded.ToList().ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id != -1)
                 toode.Price += price;
-            return toodeDB;
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/change-active/id
@@ -63,11 +66,11 @@ namespace Veeb.Controllers
         public List<Toode> ChangeActive(int id)
         {
             CreateBackup();
-            Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
+            Toode toode = DB.Tooded.ToList().ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return toodeDB;
+                return DB.Tooded.ToList();
             toode.IsActive = !toode.IsActive;
-            return toodeDB;
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/change-name/id
@@ -75,11 +78,11 @@ namespace Veeb.Controllers
         public List<Toode> ChangeName(int id, string newName)
         {
             CreateBackup();
-            Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
+            Toode toode = DB.Tooded.ToList().ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return toodeDB;
+                return DB.Tooded.ToList();
             toode.Name = newName;
-            return toodeDB;
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/multiply-price/id/factor
@@ -87,11 +90,11 @@ namespace Veeb.Controllers
         public List<Toode> MultiplyPrice(int id, int factor)
         {
             CreateBackup();
-            Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
+            Toode toode = DB.Tooded.ToList().ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
-                return toodeDB;
+                return DB.Tooded.ToList();
             toode.Price = Math.Round(toode.Price * factor, 2); 
-            return toodeDB;
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/delete/id
@@ -99,13 +102,13 @@ namespace Veeb.Controllers
         public IActionResult Delete(int id)
         {
             CreateBackup();
-            Toode toode = toodeDB.ElementAtOrDefault(id) ?? new Toode();
+            Toode toode = DB.Tooded.ToList().ElementAtOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
                 return NotFound(new { message = "Toodet ei leitud" });
-            toodeDB.RemoveAt(id);
+            DB.Tooded.ToList().RemoveAt(id);
             OrderController.Cleaning(false, id);
             Reorder();
-            return Ok(toodeDB);
+            return Ok(DB.Tooded.ToList());
         }
 
         // GET: toode/create/name/price/state
@@ -113,9 +116,10 @@ namespace Veeb.Controllers
         public List<Toode> Create(string name, double price, bool state)
         {
             CreateBackup();
-            toodeDB.Add(new Toode(toodeDB.Count, name, price, state));
+            DB.Tooded.Add(new Toode(DB.Tooded.Count(), name, price, state));
             Reorder();
-            return toodeDB;
+            DB.SaveChanges();
+            return [.. DB.Tooded];
         }
 
         //Another way to add an element
@@ -124,8 +128,8 @@ namespace Veeb.Controllers
         //public List<Toode> Create([FromQuery] int id, [FromQuery] string nimi, [FromQuery] double hind, [FromQuery] bool aktiivne)
         //{
         //    CreateBackup();
-        //    toodeDB.Add(new Toode(id, nimi, hind, aktiivne));
-        //    return toodeDB;
+        //    DB.Tooded.ToList().Add(new Toode(id, nimi, hind, aktiivne));
+        //    return DB.Tooded.ToList();
         //}
 
         // GET: toode/rate/1.5
@@ -133,12 +137,12 @@ namespace Veeb.Controllers
         public List<Toode> ChangeRate(double rate)
         {
             CreateBackup();
-            toodeDB = toodeDB.Select(x =>
+            DB.Tooded = DB.Tooded.ToList().Select(x =>
             {
                 x.Price = Math.Round(x.Price * rate, 2);
                 return x;
-            }).ToList();
-            return toodeDB;
+            }) as DbSet<Toode>;
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/clear
@@ -146,9 +150,9 @@ namespace Veeb.Controllers
         public List<Toode> ClearTable()
         {
             CreateBackup();
-            toodeDB.ForEach(x => OrderController.Cleaning(false, x.Id));
-            toodeDB.Clear();
-            return toodeDB;
+            DB.Tooded.ToList().ForEach(x => OrderController.Cleaning(false, x.Id));
+            DB.Tooded.ToList().Clear();
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/state-manage/true
@@ -156,12 +160,12 @@ namespace Veeb.Controllers
         public List<Toode> StateManage(bool state)
         {
             CreateBackup();
-            toodeDB = toodeDB.Select(x =>
+            DB.Tooded = DB.Tooded.ToList().Select(x =>
             {
                 x.IsActive = state;
                 return x;
-            }).ToList();
-            return toodeDB;
+            }) as DbSet<Toode>;
+            return DB.Tooded.ToList();
         }
 
         // GET: toode/backup
@@ -169,8 +173,8 @@ namespace Veeb.Controllers
         public List<Toode> Backup()
         {
             if (backup.Count > 0)
-                DeepCopy(backup, toodeDB);
-            return toodeDB;
+                DeepCopy(backup, DB.Tooded.ToList());
+            return DB.Tooded.ToList();
         }
 
         //GET: toode/max-price
@@ -178,7 +182,7 @@ namespace Veeb.Controllers
         public string MaxPrice()
         {
             Toode toode = new();
-            foreach (Toode item in toodeDB)
+            foreach (Toode item in DB.Tooded.ToList())
             {
                 if (item.Price > toode.Price)
                     toode = item;

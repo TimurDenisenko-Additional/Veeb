@@ -1,10 +1,20 @@
-﻿namespace Veeb.Models
+﻿
+namespace Veeb.Models
 {
-    public class Toode(int id = -1, string name = "The object is missing", double price = 0, bool isActive = false)
+    public class Toode
     {
-        public int Id { get; set; } = id;
-        public string Name { get; set; } = name;
-        public double Price { get; set; } = price;
-        public bool IsActive { get; set; } = isActive;
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public double Price { get; set; }
+        public bool IsActive { get; set; }
+        public Toode() { }
+        public Toode(int id, string name, double price, bool isActive)
+        {
+            Id = id;
+            Name = name;
+            Price = price;
+            IsActive = isActive;
+        }
     }
+    
 }
