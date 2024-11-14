@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Veeb.Models;
+using Veeb.Models.DB;
 
 namespace Veeb.Controllers
 {
@@ -7,12 +8,15 @@ namespace Veeb.Controllers
     [ApiController]
     public class KasutajaController : ControllerBase
     {
-        internal static List<Kasutaja> kasutajaDB = [new(0, "Admin", "1234", "Adam", "Adamson", true), new(1, "Goldik", "1234", "Goldar", "Lusa")];
-        private static readonly List<Kasutaja> backup = [];
+        private readonly DBContext DB; 
+        private readonly List<Kasutaja> backup = [];
         private static bool isLogged = false;
         private static int currentKasutajaId = -1;
-
-        private static void DeepCopy(List<Kasutaja> from, List<Kasutaja> to)
+        public KasutajaController(DBContext DB)
+        {
+            this.DB = DB;
+        }
+        private void DeepCopy(List<Kasutaja> from, List<Kasutaja> to)
         {
             if (from.SequenceEqual(to))
                 return;
@@ -23,50 +27,52 @@ namespace Veeb.Controllers
                 to.Add(new(x.Id, x.Username, x.Password, x.FirstName, x.LastName));
             });
         }
-        private static void CreateBackup() => DeepCopy(kasutajaDB, backup);
-        private static void Reorder()
+        private void CreateBackup() => DeepCopy([.. DB.Kasutajad], backup);
+        private void Reorder()
         {
-            for (int i = 0; i < kasutajaDB.Count; i++)
+            for (int i = 0; i < DB.Kasutajad.Count(); i++)
             {
-                int oldId = kasutajaDB[i].Id;
-                kasutajaDB[i].Id = i;
+                int oldId = DB.Kasutajad.ToList()[i].Id;
+                DB.Kasutajad.ToList()[i].Id = i;
                 OrderController.OtherReordering(true, oldId, i);
             }
+            DB.SaveChanges();
         }
 
         // GET: kasutaja
         [HttpGet]
-        public List<Kasutaja> GetKasutajad() => kasutajaDB;
+        public List<Kasutaja> GetKasutajad() => [.. DB.Kasutajad];
 
         // GET: kasutaja/id
         [HttpGet("{id}")]
-        public IActionResult GetKasutaja(int id) => kasutajaDB.ElementAtOrDefault(id) == null ? BadRequest(new { message = "Kasutajat ei leitud" }) : Ok(kasutajaDB.ElementAtOrDefault(id));
+        public IActionResult GetKasutaja(int id) => DB.Kasutajad.ElementAtOrDefault(id) == null ? BadRequest(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementAtOrDefault(id));
 
         // DELETE: kasutaja/delete/id
         [HttpDelete("delete/{id}")]
         public IActionResult Delete(int id)
         {
             CreateBackup();
-            Kasutaja kasutaja = kasutajaDB.ElementAtOrDefault(id) ?? new();
+            Kasutaja kasutaja = DB.Kasutajad.ElementAtOrDefault(id) ?? new();
             if (kasutaja.Id == -1)
                 return BadRequest(new { message = "Kasutajat ei leitud" });
-            kasutajaDB.RemoveAt(id);
+            DB.Kasutajad.ToList().RemoveAt(id);
             OrderController.Cleaning(true, id);
             Reorder();
-            return Ok(kasutajaDB);
+            return Ok(DB.Kasutajad);
         }
 
         // POST: kasutaja/create/username/password/firstname/lastname
         [HttpPost("create/{username}/{password}/{firstname}/{lastname}")]
         public IActionResult Create(string username, string password, string firstname, string lastname)
         {
-            if (!kasutajaDB.Where(x => x.Username == username).Any())
+            if (!DB.Kasutajad.Where(x => x.Username == username).Any())
             {
                 CreateBackup();
-                kasutajaDB.Add(new(kasutajaDB.Count, username, password, firstname, lastname));
+                DB.Kasutajad.Add(new(DB.Kasutajad.Count(), username, password, firstname, lastname));
                 Reorder();
-                return Ok(kasutajaDB);
+                return Ok(DB.Kasutajad);
             }
+            DB.SaveChanges();
             return BadRequest(new { message = "Dubleeritud kasutaja" });
         }
 
@@ -74,7 +80,7 @@ namespace Veeb.Controllers
         [HttpGet("login/{username}/{password}")]
         public IActionResult Login(string username, string password)
         {
-            Kasutaja checkingKasutaja = kasutajaDB.Where(x => x.Username == username)?.ElementAtOrDefault(0) ?? new();
+            Kasutaja checkingKasutaja = DB.Kasutajad.Where(x => x.Username == username)?.ElementAtOrDefault(0) ?? new();
             if (checkingKasutaja.Password == password)
             {
                 isLogged = true;
@@ -91,11 +97,11 @@ namespace Veeb.Controllers
         [HttpPost("register/{username}/{password}/{firstname}/{lastname}")]
         public IActionResult Register(string username, string password, string firstname, string lastname)
         {
-            if (!kasutajaDB.Where(x => x.Username == username).Any())
+            if (!DB.Kasutajad.Where(x => x.Username == username).Any())
             {
                 Create(username, password, firstname, lastname);
                 isLogged = true;
-                currentKasutajaId = kasutajaDB.Count;
+                currentKasutajaId = DB.Kasutajad.Count();
                 return Ok(isLogged);
             }
             else
@@ -122,7 +128,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/get-current
         [HttpGet("get-current")]
-        public IActionResult GetCurrent() => kasutajaDB.ElementAtOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(kasutajaDB.ElementAtOrDefault(currentKasutajaId));
+        public IActionResult GetCurrent() => DB.Kasutajad.ElementAtOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementAtOrDefault(currentKasutajaId));
 
         // GET: kasutaja/is-auth
         [HttpGet("is-auth")]
@@ -130,15 +136,16 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/is-admin
         [HttpGet("is-admin")]
-        public bool IsAdmin() => (kasutajaDB.ElementAtOrDefault(currentKasutajaId) ?? new()).IsAdmin;
+        public bool IsAdmin() => (DB.Kasutajad.ElementAtOrDefault(currentKasutajaId) ?? new()).IsAdmin;
 
         // POST: kasutaja/backup
         [HttpPost("backup")]
         public List<Kasutaja> Backup()
         {
             if (backup.Count > 0)
-                DeepCopy(backup, kasutajaDB);
-            return kasutajaDB;
+                DeepCopy(backup,[.. DB.Kasutajad]);
+            DB.SaveChanges();
+            return [.. DB.Kasutajad];
         }
     }
 }

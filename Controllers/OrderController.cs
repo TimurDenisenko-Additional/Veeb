@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Veeb.Models;
+using Veeb.Models.DB;
 
 namespace Veeb.Controllers
 {
@@ -7,61 +8,66 @@ namespace Veeb.Controllers
     [ApiController]
     public class OrderController : ControllerBase
     {
-        internal static List<Order> orderDB = [new(0, 0, 0)];
+        private static DBContext DB;
+        public OrderController(DBContext db)
+        {
+            DB = db;
+        }
         private static void Reorder()
         {
-            for (int i = 0; i < orderDB.Count; i++)
+            for (int i = 0; i < DB.Ordered.Count(); i++)
             {
-                orderDB[i].Id = i;
+                DB.Ordered.ToList()[i].Id = i;
             }
+            DB.SaveChanges();
         }
 
         // GET: order
         [HttpGet]
-        public List<Order> GetOrdered() => orderDB;
+        public List<Order> GetOrdered() => [.. DB.Ordered];
 
         // GET: order/id
         [HttpGet("{id}")]
-        public IActionResult GetOrder(int id) => orderDB.ElementAtOrDefault(id) != null ? Ok(orderDB.ElementAtOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
+        public IActionResult GetOrder(int id) => DB.Ordered.ElementAtOrDefault(id) != null ? Ok(DB.Ordered.ElementAtOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
 
         // DELETE: order/delete/id
         [HttpDelete("delete/{id}")]
         public IActionResult Delete(int id)
         {
-            Order order = orderDB.ElementAtOrDefault(id) ?? new();
+            Order order = DB.Ordered.ElementAtOrDefault(id) ?? new();
             if (order.Id == -1)
                 return NotFound(new { message = "Tellimust ei leitud" });
-            orderDB.RemoveAt(id);
+            DB.Ordered.ToList().RemoveAt(id);
             Reorder();
-            return Ok(orderDB);
+            return Ok(DB.Ordered);
         }
 
-        //// POST: order/create/username/password/firstname/lastname
-        //[HttpPost("create/{kasutajaId}/{toodeId}")]
-        //public IActionResult Create(int kasutajaId, int toodeId)
-        //{
-        //    if (KasutajaController.kasutajaDB.ElementAtOrDefault(kasutajaId) == null)
-        //        return NotFound(new { message = "Kasutajat ei leitud" });
-        //    else if (ToodeController.toodeDB.ElementAtOrDefault(toodeId) == null)
-        //        return NotFound(new { message = "Toodet ei leitud" });
-        //    orderDB.Add(new(orderDB.Count, kasutajaId, toodeId));
-        //    Reorder();
-        //    return Ok(orderDB);
-        //}
+        // POST: order/create/username/password/firstname/lastname
+        [HttpPost("create/{kasutajaId}/{toodeId}")]
+        public IActionResult Create(int kasutajaId, int toodeId)
+        {
+            if (DB.Kasutajad.ElementAtOrDefault(kasutajaId) == null)
+                return NotFound(new { message = "Kasutajat ei leitud" });
+            else if (DB.Tooded.ElementAtOrDefault(toodeId) == null)
+                return NotFound(new { message = "Toodet ei leitud" });
+            DB.Ordered.Add(new(DB.Ordered.Count(), kasutajaId, toodeId));
+            Reorder();
+            return Ok(DB.Ordered);
+        }
         public static void Cleaning(bool isKasutaja, int deletedId)
         {
-            foreach (Order order in orderDB.ToList())
+            foreach (Order order in DB.Ordered)
             {
                 if ((isKasutaja && order.KasutajaId == deletedId) || (!isKasutaja && order.ToodeId == deletedId))
                 {
-                    orderDB.Remove(order);
+                    DB.Ordered.Remove(order);
                 }
             }
             Reorder();
         }
         public static void OtherReordering(bool isKasutaja, int reorderId, int newId)
         {
-            foreach (Order order in orderDB.ToList()) 
+            foreach (Order order in DB.Ordered) 
             {
                 if (isKasutaja && order.KasutajaId == reorderId)
                 {
@@ -72,6 +78,7 @@ namespace Veeb.Controllers
                     order.ToodeId = newId;
                 }
             }
+            DB.SaveChanges();
         }
     }
 }
