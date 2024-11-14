@@ -128,7 +128,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/get-current
         [HttpGet("get-current")]
-        public IActionResult GetCurrent() => DB.Kasutajad.ElementAtOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementAtOrDefault(currentKasutajaId));
+        public IActionResult GetCurrent() => DB.Kasutajad.ToList().ElementAtOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementAtOrDefault(currentKasutajaId));
 
         // GET: kasutaja/is-auth
         [HttpGet("is-auth")]
@@ -136,7 +136,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/is-admin
         [HttpGet("is-admin")]
-        public bool IsAdmin() => (DB.Kasutajad.ElementAtOrDefault(currentKasutajaId) ?? new()).IsAdmin;
+        public bool IsAdmin() => (DB.Kasutajad.ToList().ElementAtOrDefault(currentKasutajaId) ?? new()).IsAdmin;
 
         // POST: kasutaja/backup
         [HttpPost("backup")]
