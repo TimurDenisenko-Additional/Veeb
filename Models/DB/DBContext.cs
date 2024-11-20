@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Veeb.Controllers;
 
 namespace Veeb.Models.DB
 {
@@ -14,7 +15,7 @@ namespace Veeb.Models.DB
         {
             if (!Kasutajad.Where(x => x.IsAdmin).Any())
             {
-                Kasutajad.Add(new(Kasutajad.Count(), "admin", "admin", "admin", "admin", true));
+                Kasutajad.Add(new(0, "admin", "admin", "admin", "admin", true));
                 SaveChanges();
             }
         }

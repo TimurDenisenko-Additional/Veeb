@@ -1,4 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text;
+using Veeb.Migrations;
 using Veeb.Models;
 using Veeb.Models.DB;
 
@@ -13,14 +17,14 @@ namespace Veeb.Controllers
         {
             DB = db;
         }
-        private static void Reorder()
-        {
-            for (int i = 0; i < DB.Ordered.Count(); i++)
-            {
-                DB.Ordered.ToList()[i].Id = i;
-            }
-            DB.SaveChanges();
-        }
+        //private static void Reorder()
+        //{
+        //    for (int i = 0; i < DB.Ordered.Count(); i++)
+        //    {
+        //        DB.Ordered.ToList()[i].Id = i;
+        //    }
+        //    DB.SaveChanges();
+        //}s
 
         // GET: order
         [HttpGet]
@@ -28,32 +32,95 @@ namespace Veeb.Controllers
 
         // GET: order/id
         [HttpGet("{id}")]
-        public IActionResult GetOrder(int id) => DB.Ordered.ElementAtOrDefault(id) != null ? Ok(DB.Ordered.ElementAtOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
+        public IActionResult GetOrder(int id) => DB.Ordered.ElementOrDefault(id) != null ? Ok(DB.Ordered.ElementOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
 
         // DELETE: order/delete/id
         [HttpDelete("delete/{id}")]
         public IActionResult Delete(int id)
         {
-            Order order = DB.Ordered.ElementAtOrDefault(id) ?? new();
+            Order order = DB.Ordered.ElementOrDefault(id) ?? new();
             if (order.Id == -1)
                 return NotFound(new { message = "Tellimust ei leitud" });
             DB.Ordered.ToList().RemoveAt(id);
-            Reorder();
             return Ok(DB.Ordered);
         }
 
-        // POST: order/create/username/password/firstname/lastname
+        // POST: order/create/kasutajaId/toodeId
         [HttpPost("create/{kasutajaId}/{toodeId}")]
         public IActionResult Create(int kasutajaId, int toodeId)
         {
-            if (DB.Kasutajad.ElementAtOrDefault(kasutajaId) == null)
+            if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
                 return NotFound(new { message = "Kasutajat ei leitud" });
-            else if (DB.Tooded.ElementAtOrDefault(toodeId) == null)
+            else if (DB.Tooded.ElementOrDefault(toodeId) == null)
                 return NotFound(new { message = "Toodet ei leitud" });
             DB.Ordered.Add(new(DB.Ordered.Count(), kasutajaId, toodeId));
-            Reorder();
+            DB.SaveChanges();
             return Ok(DB.Ordered);
         }
+
+        // POST: order/buy/toodeId
+        [HttpPost("buy/{toodeId}")]
+        public IActionResult AddToCard(int toodeId) => Create(KasutajaController.currentKasutajaId, toodeId);
+
+        // GET: order/userCart/kasutajaId
+        [HttpGet("userCart/{kasutajaId}")]
+        public IActionResult UserCart(int kasutajaId)
+        {
+            if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
+                return NotFound(new { message = "Kasutajat ei leitud" });
+            return Ok(DB.Ordered.Where(x => x.KasutajaId == kasutajaId));
+        }
+
+        // GET: order/userCartSum/kasutajaId
+        [HttpGet("userCartSum/{kasutajaId}")]
+        public IActionResult UserCartSum(int kasutajaId)
+        {
+            if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
+                return NotFound(new { message = "Kasutajat ei leitud" });
+            return Ok(userCartSum(kasutajaId));
+        }
+
+        private double userCartSum(int kasutajaId)
+        {
+            double sum = 0;
+            foreach (Order order in DB.Ordered)
+            {
+                if (order.KasutajaId != kasutajaId)
+                    continue;
+                sum += DB.Tooded.ElementOrDefault(order.ToodeId)?.Price ?? 0;
+            }
+            return sum;
+        }
+
+        [HttpGet("MakePayment/{kasutajaId}")]
+        public async Task<IActionResult> MakePayment(int kasutajaId)
+        {
+            double amount = userCartSum(kasutajaId);
+            if (amount == 0)
+                return BadRequest("Cart is empty");
+            string json = JsonSerializer.Serialize(new
+            {
+                api_username = "e36eb40f5ec87fa2",
+                account_name = "EUR3D1",
+                amount,
+                order_reference = Math.Ceiling(new Random().NextDouble() * 999999),
+                nonce = $"a9b7f7e7as{DateTime.Now}{new Random().NextDouble() * 999999}",
+                timestamp = DateTime.Now,
+                customer_url = "https://maksmine.web.app/makse"
+            });
+
+            HttpClient client = new();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", "ZTM2ZWI0MGY1ZWM4N2ZhMjo3YjkxYTNiOWUxYjc0NTI0YzJlOWZjMjgyZjhhYzhjZA==");
+            HttpResponseMessage response = await client.PostAsync("https://igw-demo.every-pay.com/api/v4/payments/oneoff", new StringContent(json, Encoding.UTF8, "application/json"));
+
+            if (!response.IsSuccessStatusCode )
+                return BadRequest("Payment failed.");
+            string responseContent = await response.Content.ReadAsStringAsync();
+            JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
+            JsonElement paymentLink = jsonDoc.RootElement.GetProperty("payment_link");
+            return Ok(paymentLink);
+        }
+
         public static void Cleaning(bool isKasutaja, int deletedId)
         {
             foreach (Order order in DB.Ordered)
@@ -63,22 +130,21 @@ namespace Veeb.Controllers
                     DB.Ordered.Remove(order);
                 }
             }
-            Reorder();
         }
-        public static void OtherReordering(bool isKasutaja, int reorderId, int newId)
-        {
-            foreach (Order order in DB.Ordered) 
-            {
-                if (isKasutaja && order.KasutajaId == reorderId)
-                {
-                    order.KasutajaId = newId;
-                }
-                else if (!isKasutaja && order.ToodeId == reorderId)
-                {
-                    order.ToodeId = newId;
-                }
-            }
-            DB.SaveChanges();
-        }
+        //public static void OtherReordering(bool isKasutaja, int reorderId, int newId)
+        //{
+        //    foreach (Order order in DBContext.DB.Ordered) 
+        //    {
+        //        if (isKasutaja && order.KasutajaId == reorderId)
+        //        {
+        //            order.KasutajaId = newId;
+        //        }
+        //        else if (!isKasutaja && order.ToodeId == reorderId)
+        //        {
+        //            order.ToodeId = newId;
+        //        }
+        //    }
+        //    DBContext.DB.SaveChanges();
+        //}
     }
 }

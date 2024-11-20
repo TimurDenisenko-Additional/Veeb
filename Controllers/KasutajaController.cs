@@ -10,54 +10,52 @@ namespace Veeb.Controllers
     {
         private readonly DBContext DB; 
         private readonly List<Kasutaja> backup = [];
-        private static bool isLogged = false;
-        private static int currentKasutajaId = -1;
+        internal static bool isLogged = false;
+        internal static int currentKasutajaId = -1; 
         public KasutajaController(DBContext DB)
         {
             this.DB = DB;
         }
-        private void DeepCopy(List<Kasutaja> from, List<Kasutaja> to)
-        {
-            if (from.SequenceEqual(to))
-                return;
-            if (to.Count > 0)
-                to.Clear();
-            from.ForEach(x =>
-            {
-                to.Add(new(x.Id, x.Username, x.Password, x.FirstName, x.LastName));
-            });
-        }
-        private void CreateBackup() => DeepCopy([.. DB.Kasutajad], backup);
-        private void Reorder()
-        {
-            for (int i = 0; i < DB.Kasutajad.Count(); i++)
-            {
-                int oldId = DB.Kasutajad.ToList()[i].Id;
-                DB.Kasutajad.ToList()[i].Id = i;
-                OrderController.OtherReordering(true, oldId, i);
-            }
-            DB.SaveChanges();
-        }
+        //private void DeepCopy(List<Kasutaja> from, List<Kasutaja> to)
+        //{
+        //    if (from.SequenceEqual(to))
+        //        return;
+        //    if (to.Count > 0)
+        //        to.Clear();
+        //    from.ForEach(x =>
+        //    {
+        //        to.Add(new(x.Id, x.Username, x.Password, x.FirstName, x.LastName));
+        //    });
+        //}
+        //private void CreateBackup() => DeepCopy([.. DB.Kasutajad], backup);
+        //private void Reorder()
+        //{
+        //    for (int i = 0; i < DB.Kasutajad.Count(); i++)
+        //    {
+        //        int oldId = DB.Kasutajad.ToList()[i].Id;
+        //        DB.Kasutajad.ToList()[i].Id = i;
+        //        OrderController.OtherReordering(true, oldId, i);
+        //    }
+        //    DB.SaveChanges();
+        //}
 
         // GET: kasutaja
         [HttpGet]
-        public List<Kasutaja> GetKasutajad() => [.. DB.Kasutajad];
+        public List<Kasutaja> GetKasutajad() => [..DB.Kasutajad];
 
         // GET: kasutaja/id
         [HttpGet("{id}")]
-        public IActionResult GetKasutaja(int id) => DB.Kasutajad.ElementAtOrDefault(id) == null ? BadRequest(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementAtOrDefault(id));
+        public IActionResult GetKasutaja(int id) => DB.Kasutajad.ElementOrDefault(id) == null ? BadRequest(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementOrDefault(id));
 
         // DELETE: kasutaja/delete/id
         [HttpDelete("delete/{id}")]
         public IActionResult Delete(int id)
         {
-            CreateBackup();
-            Kasutaja kasutaja = DB.Kasutajad.ElementAtOrDefault(id) ?? new();
+            Kasutaja kasutaja = DB.Kasutajad.ElementOrDefault(id) ?? new();
             if (kasutaja.Id == -1)
                 return BadRequest(new { message = "Kasutajat ei leitud" });
             DB.Kasutajad.ToList().RemoveAt(id);
             OrderController.Cleaning(true, id);
-            Reorder();
             return Ok(DB.Kasutajad);
         }
 
@@ -67,9 +65,7 @@ namespace Veeb.Controllers
         {
             if (!DB.Kasutajad.Where(x => x.Username == username).Any())
             {
-                CreateBackup();
                 DB.Kasutajad.Add(new(DB.Kasutajad.Count(), username, password, firstname, lastname));
-                Reorder();
                 return Ok(DB.Kasutajad);
             }
             DB.SaveChanges();
@@ -128,7 +124,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/get-current
         [HttpGet("get-current")]
-        public IActionResult GetCurrent() => DB.Kasutajad.ToList().ElementAtOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementAtOrDefault(currentKasutajaId));
+        public IActionResult GetCurrent() => DB.Kasutajad.ElementOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementOrDefault(currentKasutajaId));
 
         // GET: kasutaja/is-auth
         [HttpGet("is-auth")]
@@ -136,16 +132,16 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/is-admin
         [HttpGet("is-admin")]
-        public bool IsAdmin() => (DB.Kasutajad.ToList().ElementAtOrDefault(currentKasutajaId) ?? new()).IsAdmin;
+        public bool IsAdmin() => (DB.Kasutajad.ElementOrDefault(currentKasutajaId) ?? new()).IsAdmin;
 
-        // POST: kasutaja/backup
-        [HttpPost("backup")]
-        public List<Kasutaja> Backup()
-        {
-            if (backup.Count > 0)
-                DeepCopy(backup,[.. DB.Kasutajad]);
-            DB.SaveChanges();
-            return [.. DB.Kasutajad];
-        }
+        //// POST: kasutaja/backup
+        //[HttpPost("backup")]
+        //public List<Kasutaja> Backup()
+        //{
+        //    if (backup.Count > 0)
+        //        DeepCopy(backup,[.. DB.Kasutajad]);
+        //    DB.SaveChanges();
+        //    return [.. DB.Kasutajad];
+        //}
     }
 }
