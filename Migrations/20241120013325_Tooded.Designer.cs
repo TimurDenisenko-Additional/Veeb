@@ -11,7 +11,7 @@ using Veeb.Models.DB;
 namespace Veeb.Migrations
 {
     [DbContext(typeof(DBContext))]
-    [Migration("20241113102654_Tooded")]
+    [Migration("20241120013325_Tooded")]
     partial class Tooded
     {
         /// <inheritdoc />
@@ -19,7 +19,7 @@ namespace Veeb.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);

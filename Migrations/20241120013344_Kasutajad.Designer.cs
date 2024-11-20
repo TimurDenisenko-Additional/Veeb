@@ -11,8 +11,8 @@ using Veeb.Models.DB;
 namespace Veeb.Migrations
 {
     [DbContext(typeof(DBContext))]
-    [Migration("20241114111303_Ordered")]
-    partial class Ordered
+    [Migration("20241120013344_Kasutajad")]
+    partial class Kasutajad
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,25 +54,6 @@ namespace Veeb.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Kasutajad");
-                });
-
-            modelBuilder.Entity("Veeb.Models.Order", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("KasutajaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ToodeId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Ordered");
                 });
 
             modelBuilder.Entity("Veeb.Models.Toode", b =>
