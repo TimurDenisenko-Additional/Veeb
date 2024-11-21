@@ -60,14 +60,14 @@ namespace Veeb.Controllers
 
         // POST: order/buy/toodeId
         [HttpPost("buy/{toodeId}")]
-        public IActionResult AddToCard(int toodeId) => Create(KasutajaController.currentKasutajaId, toodeId);
+        public IActionResult AddToCard(int toodeId) => KasutajaController.currentKasutajaId != -1 ? Create(KasutajaController.currentKasutajaId, toodeId) : NotFound(new {message = "Sa ei ole sisse logitud"});
 
         // GET: order/userCart/kasutajaId
         [HttpGet("userCart/{kasutajaId}")]
         public IActionResult UserCart(int kasutajaId)
         {
             if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
-                return NotFound(new { message = "Kasutajat ei leitud" });
+                return NotFound(new { message = "Sa ei ole sisse logitud" });
             return Ok(DB.Ordered.Where(x => x.KasutajaId == kasutajaId));
         }
 
@@ -76,7 +76,7 @@ namespace Veeb.Controllers
         public IActionResult UserCartSum(int kasutajaId)
         {
             if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
-                return NotFound(new { message = "Kasutajat ei leitud" });
+                return NotFound(new { message = "Sa ei ole sisse logitud" });
             return Ok(userCartSum(kasutajaId));
         }
 
