@@ -13,7 +13,7 @@ namespace Veeb.Models.DB
 
         public DBContext(DbContextOptions<DBContext> options) : base(options)
         {
-            if (!Kasutajad.Where(x => x.IsAdmin).Any())
+            if (!Kasutajad?.Where(x => x.IsAdmin).Any() ?? false)
             {
                 Kasutajad.Add(new(0, "admin", "admin", "admin", "admin", true));
                 SaveChanges();

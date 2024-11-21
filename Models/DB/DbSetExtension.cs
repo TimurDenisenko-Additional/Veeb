@@ -8,11 +8,11 @@ namespace Veeb.Models.DB
         {
             DBModel? model = null;
             if (typeof(T) == typeof(Kasutaja))
-                model = DB.First(x => x.Id == id) ?? null;
+                model = DB.FirstOrDefault(x => x.Id == id) ?? null;
             else if (typeof(T) == typeof(Order))
-                model = DB.First(x => x.Id == id) ?? null;
+                model = DB.FirstOrDefault(x => x.Id == id) ?? null;
             else if (typeof(T) == typeof(Toode))
-                model = DB.First(x => x.Id == id) ?? null;
+                model = DB.FirstOrDefault(x => x.Id == id) ?? null;
             return model as T;
         }
     }

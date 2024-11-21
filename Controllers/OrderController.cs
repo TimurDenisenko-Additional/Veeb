@@ -82,14 +82,8 @@ namespace Veeb.Controllers
 
         private double userCartSum(int kasutajaId)
         {
-            double sum = 0;
-            foreach (Order order in DB.Ordered)
-            {
-                if (order.KasutajaId != kasutajaId)
-                    continue;
-                sum += DB.Tooded.ElementOrDefault(order.ToodeId)?.Price ?? 0;
-            }
-            return sum;
+            int orderId = DB.Ordered.Where(x => x.KasutajaId == kasutajaId).FirstOrDefault()?.Id ?? -1;
+            return DB.Tooded.Where(x => x.Id == orderId)?.Sum(x =>  x.Price) ?? 0;
         }
 
         [HttpGet("MakePayment/{kasutajaId}")]

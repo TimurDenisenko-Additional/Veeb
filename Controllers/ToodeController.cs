@@ -108,6 +108,7 @@ namespace Veeb.Controllers
                 return NotFound(new { message = "Toodet ei leitud" });
             DB.Tooded.ToList().RemoveAt(id);
             OrderController.Cleaning(false, id);
+            DB.SaveChanges();
             return Ok(DB.Tooded.ToList());
         }
 
@@ -116,6 +117,7 @@ namespace Veeb.Controllers
         public List<Toode> Create(string name, double price, bool state)
         {
             DB.Tooded.Add(new Toode(DB.Tooded.Count(), name, price, state));
+            DB.SaveChanges();
             return [.. DB.Tooded];
         }
 
