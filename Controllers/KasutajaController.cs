@@ -49,13 +49,13 @@ namespace Veeb.Controllers
 
         // DELETE: kasutaja/delete/id
         [HttpDelete("delete/{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            Kasutaja kasutaja = DB.Kasutajad.ElementOrDefault(id) ?? new();
+            Kasutaja kasutaja = await DB.Kasutajad.ElementOrDefault(id) ?? new();
             if (kasutaja.Id == -1)
                 return BadRequest(new { message = "Kasutajat ei leitud" });
             DB.Kasutajad.ToList().RemoveAt(id);
-            OrderController.Cleaning(true, id);
+            OrderController.Cleaning(DB, true, id);
             return Ok(DB.Kasutajad);
         }
 
@@ -65,10 +65,10 @@ namespace Veeb.Controllers
         {
             if (!DB.Kasutajad.Where(x => x.Username == username).Any())
             {
-                DB.Kasutajad.Add(new(DB.Kasutajad.Count(), username, password, firstname, lastname));
+                DB.Kasutajad.Add(new(0, username, password, firstname, lastname));
+                DB.SaveChanges();
                 return Ok(DB.Kasutajad);
             }
-            DB.SaveChanges();
             return BadRequest(new { message = "Dubleeritud kasutaja" });
         }
 
@@ -132,7 +132,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/is-admin
         [HttpGet("is-admin")]
-        public bool IsAdmin() => (DB.Kasutajad.ElementOrDefault(currentKasutajaId) ?? new()).IsAdmin;
+        public async Task<bool> IsAdmin() => (await DB.Kasutajad.ElementOrDefault(currentKasutajaId) ?? new()).IsAdmin;
 
         //// POST: kasutaja/backup
         //[HttpPost("backup")]

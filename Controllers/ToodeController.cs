@@ -50,13 +50,13 @@ namespace Veeb.Controllers
 
         // GET: toode/id
         [HttpGet("{id}")]
-        public IActionResult GetToode(int id) => DB.Tooded.ElementOrDefault(id) == null ? NotFound(new { message = "Toodet ei leitud" }) : Ok(DB.Tooded.ElementOrDefault(id));
+        public async Task<IActionResult> GetToode(int id) => await DB.Tooded.ElementOrDefault(id) == null ? NotFound(new { message = "Toodet ei leitud" }) : Ok(await DB.Tooded.ElementOrDefault(id));
 
         // GET: toode/suurenda-hinda/id/price
         [HttpPatch("suurenda-hinda/{id}/{price}")]
-        public List<Toode> SuurendaHinda(int id, float price)
+        public async Task<List<Toode>> SuurendaHinda(int id, float price)
         {
-            Toode toode = DB.Tooded.ElementOrDefault(id) ?? new Toode();
+            Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
             if (toode.Id != -1)
                 toode.Price += price;
             DB.SaveChanges();
@@ -65,9 +65,9 @@ namespace Veeb.Controllers
 
         // GET: toode/change-active/id
         [HttpPatch("change-active/{id}")]
-        public List<Toode> ChangeActive(int id)
+        public async Task<List<Toode>> ChangeActive(int id)
         {
-            Toode toode = DB.Tooded.ElementOrDefault(id) ?? new Toode();
+            Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
                 return [.. DB.Tooded];
             toode.IsActive = !toode.IsActive;
@@ -77,9 +77,9 @@ namespace Veeb.Controllers
 
         // GET: toode/change-name/id
         [HttpPatch("change-name/{id}/{newName}")]
-        public List<Toode> ChangeName(int id, string newName)
+        public async Task<List<Toode>> ChangeName(int id, string newName)
         {
-            Toode toode = DB.Tooded.ElementOrDefault(id) ?? new Toode();
+            Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
                 return [.. DB.Tooded];
             toode.Name = newName;
@@ -89,9 +89,9 @@ namespace Veeb.Controllers
 
         // GET: toode/multiply-price/id/factor
         [HttpPatch("multiply-price/{id}/{factor}")]
-        public List<Toode> MultiplyPrice(int id, int factor)
+        public async Task<List<Toode>> MultiplyPrice(int id, int factor)
         {
-            Toode toode = DB.Tooded.ElementOrDefault(id) ?? new Toode();
+            Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
                 return [.. DB.Tooded];
             toode.Price = Math.Round(toode.Price * factor, 2);
@@ -101,13 +101,13 @@ namespace Veeb.Controllers
 
         // GET: toode/delete/id
         [HttpDelete("delete/{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            Toode toode = DB.Tooded.ElementOrDefault(id) ?? new Toode();
+            Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
                 return NotFound(new { message = "Toodet ei leitud" });
             DB.Tooded.ToList().RemoveAt(id);
-            OrderController.Cleaning(false, id);
+            OrderController.Cleaning(DB, false, id);
             DB.SaveChanges();
             return Ok(DB.Tooded.ToList());
         }
@@ -116,7 +116,7 @@ namespace Veeb.Controllers
         [HttpPost("create/{name}/{price}/{state}")]
         public List<Toode> Create(string name, double price, bool state)
         {
-            DB.Tooded.Add(new Toode(DB.Tooded.Count(), name, price, state));
+            DB.Tooded.Add(new Toode(0, name, price, state));
             DB.SaveChanges();
             return [.. DB.Tooded];
         }
@@ -150,7 +150,7 @@ namespace Veeb.Controllers
         [HttpDelete("clear")]
         public List<Toode> ClearTable()
         {
-            DB.Tooded.ToList().ForEach(x => OrderController.Cleaning(false, x.Id));
+            DB.Tooded.ToList().ForEach(x => OrderController.Cleaning(DB, false, x.Id));
             DB.Tooded.ToList().Clear();
             DB.SaveChanges();
             return [.. DB.Tooded];

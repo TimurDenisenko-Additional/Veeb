@@ -2,7 +2,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text;
-using Veeb.Migrations;
 using Veeb.Models;
 using Veeb.Models.DB;
 
@@ -12,7 +11,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class OrderController : ControllerBase
     {
-        private static DBContext DB;
+        private DBContext DB;
         public OrderController(DBContext db)
         {
             DB = db;
@@ -32,64 +31,83 @@ namespace Veeb.Controllers
 
         // GET: order/id
         [HttpGet("{id}")]
-        public IActionResult GetOrder(int id) => DB.Ordered.ElementOrDefault(id) != null ? Ok(DB.Ordered.ElementOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
+        public async Task<IActionResult> GetOrder(int id) => await DB.Ordered.ElementOrDefault(id) != null ? Ok(await DB.Ordered.ElementOrDefault(id)) : NotFound(new { message = "Tellimust ei leitud" });
 
         // DELETE: order/delete/id
         [HttpDelete("delete/{id}")]
-        public IActionResult Delete(int id)
+        public async Task <IActionResult> Delete(int id)
         {
-            Order order = DB.Ordered.ElementOrDefault(id) ?? new();
-            if (order.Id == -1)
+            Order order = await DB.Ordered.ElementOrDefault(id) ?? new();
+            if (order.Id == -1 || !DB.Ordered.Any(x => x.Id == id))
                 return NotFound(new { message = "Tellimust ei leitud" });
-            DB.Ordered.ToList().RemoveAt(id);
+            DB.Ordered.Remove(order);
             return Ok(DB.Ordered);
         }
 
         // POST: order/create/kasutajaId/toodeId
         [HttpPost("create/{kasutajaId}/{toodeId}")]
-        public IActionResult Create(int kasutajaId, int toodeId)
+        public async Task<IActionResult> Create(int kasutajaId, int toodeId)
         {
-            if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
+            if (await DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
                 return NotFound(new { message = "Kasutajat ei leitud" });
-            else if (DB.Tooded.ElementOrDefault(toodeId) == null)
+            else if (await DB.Tooded.ElementOrDefault(toodeId) == null)
                 return NotFound(new { message = "Toodet ei leitud" });
-            DB.Ordered.Add(new(DB.Ordered.Count(), kasutajaId, toodeId));
+            DB.Ordered.Add(new(0, kasutajaId, toodeId));
             DB.SaveChanges();
             return Ok(DB.Ordered);
         }
 
         // POST: order/buy/toodeId
         [HttpPost("buy/{toodeId}")]
-        public IActionResult AddToCard(int toodeId) => KasutajaController.currentKasutajaId != -1 ? Create(KasutajaController.currentKasutajaId, toodeId) : NotFound(new {message = "Sa ei ole sisse logitud"});
-
-        // GET: order/userCart/kasutajaId
-        [HttpGet("userCart/{kasutajaId}")]
-        public IActionResult UserCart(int kasutajaId)
+        public async Task<IActionResult> AddToCart(int toodeId)
         {
-            if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
+            if (await DB.Kasutajad.ElementOrDefault(KasutajaController.currentKasutajaId) == null)
                 return NotFound(new { message = "Sa ei ole sisse logitud" });
-            return Ok(DB.Ordered.Where(x => x.KasutajaId == kasutajaId));
+            else if (await DB.Tooded.ElementOrDefault(toodeId) == null)
+                return NotFound(new { message = "Toodet ei leitud" });
+            DB.Ordered.Add(new(0, KasutajaController.currentKasutajaId, toodeId));
+            DB.SaveChanges();
+            return Ok(new { message = "Toode lisatud ostukorvi" });
+        }
+
+        // GET: order/userCart
+        [HttpGet("userCart")]
+        public async Task<IActionResult> UserCart()
+        {
+            if (await DB.Kasutajad.ElementOrDefault(KasutajaController.currentKasutajaId) == null)
+                return NotFound(new { message = "Sa ei ole sisse logitud" });
+            Toode?[] tooded = await userCart();
+            return Ok(tooded);
         }
 
         // GET: order/userCartSum/kasutajaId
-        [HttpGet("userCartSum/{kasutajaId}")]
-        public IActionResult UserCartSum(int kasutajaId)
+        [HttpGet("userCartSum")]
+        public async Task<IActionResult> UserCartSumAsync()
         {
-            if (DB.Kasutajad.ElementOrDefault(kasutajaId) == null)
+            if (await DB.Kasutajad.ElementOrDefault(KasutajaController.currentKasutajaId) == null)
                 return NotFound(new { message = "Sa ei ole sisse logitud" });
-            return Ok(userCartSum(kasutajaId));
+            return Ok(await userCartSum());
         }
 
-        private double userCartSum(int kasutajaId)
+        private async Task<Toode?[]> userCart()
         {
-            int orderId = DB.Ordered.Where(x => x.KasutajaId == kasutajaId).FirstOrDefault()?.Id ?? -1;
-            return DB.Tooded.Where(x => x.Id == orderId)?.Sum(x =>  x.Price) ?? 0;
+            return await DB.Ordered.Where(x => x.KasutajaId == KasutajaController.currentKasutajaId).Join(
+            DB.Tooded,
+            order => order.ToodeId,
+            toode => toode.Id,
+            (order, toode) => toode
+            ).ToAsyncEnumerable().ToArrayAsync();
+        }
+        private async Task<double> userCartSum()
+        {
+            Toode?[] tooded = await userCart();
+            return tooded.Sum(x => x.Price);
         }
 
-        [HttpGet("MakePayment/{kasutajaId}")]
-        public async Task<IActionResult> MakePayment(int kasutajaId)
+        [HttpGet("MakePayment")]
+        public async Task<IActionResult> MakePayment()
         {
-            double amount = userCartSum(kasutajaId);
+            double amount = await userCartSum();
             if (amount == 0)
                 return BadRequest("Cart is empty");
             string json = JsonSerializer.Serialize(new
@@ -115,7 +133,7 @@ namespace Veeb.Controllers
             return Ok(paymentLink);
         }
 
-        public static void Cleaning(bool isKasutaja, int deletedId)
+        public static void Cleaning(DBContext DB, bool isKasutaja, int deletedId)
         {
             foreach (Order order in DB.Ordered)
             {
