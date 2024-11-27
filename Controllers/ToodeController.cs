@@ -11,7 +11,7 @@ namespace Veeb.Controllers
     public class ToodeController : ControllerBase
     {
         private readonly DBContext DB;
-        private static readonly List<Toode> backup = [];
+        // private static readonly List<Toode> backup = [];
         public ToodeController(DBContext db) 
         {
             DB = db;
@@ -106,7 +106,7 @@ namespace Veeb.Controllers
             Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
             if (toode.Id == -1)
                 return NotFound(new { message = "Toodet ei leitud" });
-            DB.Tooded.ToList().RemoveAt(id);
+            DB.Tooded.Remove(toode);
             OrderController.Cleaning(DB, false, id);
             DB.SaveChanges();
             return Ok(DB.Tooded.ToList());
@@ -151,7 +151,7 @@ namespace Veeb.Controllers
         public List<Toode> ClearTable()
         {
             DB.Tooded.ToList().ForEach(x => OrderController.Cleaning(DB, false, x.Id));
-            DB.Tooded.ToList().Clear();
+            DB.Tooded.ToList().ForEach(x => DB.Tooded.Remove(x));
             DB.SaveChanges();
             return [.. DB.Tooded];
         }

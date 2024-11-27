@@ -56,6 +56,7 @@ namespace Veeb.Controllers
                 return BadRequest(new { message = "Kasutajat ei leitud" });
             DB.Kasutajad.ToList().RemoveAt(id);
             OrderController.Cleaning(DB, true, id);
+            await DB.SaveChangesAsync();
             return Ok(DB.Kasutajad);
         }
 
@@ -91,13 +92,14 @@ namespace Veeb.Controllers
 
         // POST: kasutaja/register/username/password/firstname/lastname
         [HttpPost("register/{username}/{password}/{firstname}/{lastname}")]
-        public IActionResult Register(string username, string password, string firstname, string lastname)
+        public async Task<IActionResult> RegisterAsync(string username, string password, string firstname, string lastname)
         {
             if (!DB.Kasutajad.Where(x => x.Username == username).Any())
             {
                 Create(username, password, firstname, lastname);
                 isLogged = true;
-                currentKasutajaId = DB.Kasutajad.Count();
+                await DB.SaveChangesAsync();
+                currentKasutajaId = DB.Kasutajad.Last().Id;
                 return Ok(isLogged);
             }
             else

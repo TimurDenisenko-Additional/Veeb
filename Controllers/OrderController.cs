@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text;
 using Veeb.Models;
 using Veeb.Models.DB;
+using Microsoft.EntityFrameworkCore;
 
 namespace Veeb.Controllers
 {
@@ -11,7 +12,7 @@ namespace Veeb.Controllers
     [ApiController]
     public class OrderController : ControllerBase
     {
-        private DBContext DB;
+        private readonly DBContext DB;
         public OrderController(DBContext db)
         {
             DB = db;
@@ -41,6 +42,7 @@ namespace Veeb.Controllers
             if (order.Id == -1 || !DB.Ordered.Any(x => x.Id == id))
                 return NotFound(new { message = "Tellimust ei leitud" });
             DB.Ordered.Remove(order);
+            await DB.SaveChangesAsync();
             return Ok(DB.Ordered);
         }
 
@@ -131,6 +133,22 @@ namespace Veeb.Controllers
             JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
             JsonElement paymentLink = jsonDoc.RootElement.GetProperty("payment_link");
             return Ok(paymentLink);
+        }
+
+        [HttpDelete("clearCart")]
+        public async Task<IActionResult> ClearCart()
+        {
+            Cleaning(DB, true, KasutajaController.currentKasutajaId);
+            await DB.SaveChangesAsync();
+            return Ok(await userCart());
+        }
+
+        [HttpDelete("deleteFromCart/{toodeId}")]
+        public async Task<IActionResult> DeleteFromCart(int toodeId)
+        {
+            DB.Ordered.Remove(await DB.Ordered.FirstOrDefaultAsync(x => x.ToodeId == toodeId));
+            await DB.SaveChangesAsync();
+            return Ok(await userCart());
         }
 
         public static void Cleaning(DBContext DB, bool isKasutaja, int deletedId)
