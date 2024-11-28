@@ -160,15 +160,9 @@ namespace Veeb.Controllers
 
         // GET: toode/state-manage/true
         [HttpPatch("state-manage/{state}")]
-        public List<Toode> StateManage(bool state)
+        public async Task<List<Toode>> StateManage(bool state)
         {
-#pragma warning disable CS8601 // Possible null reference assignment.
-            DB.Tooded = DB.Tooded.ToList().Select(x =>
-            {
-                x.IsActive = state;
-                return x;
-            }) as DbSet<Toode>;
-#pragma warning restore CS8601 // Possible null reference assignment.
+            await DB.Tooded.ForEachAsync(x => x.IsActive = state);
             DB.SaveChanges();
             return [.. DB.Tooded];
         }
