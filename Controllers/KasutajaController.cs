@@ -99,7 +99,7 @@ namespace Veeb.Controllers
                 Create(username, password, firstname, lastname);
                 isLogged = true;
                 await DB.SaveChangesAsync();
-                currentKasutajaId = DB.Kasutajad.Last().Id;
+                currentKasutajaId = DB.Kasutajad.Max(x => x.Id);
                 return Ok(isLogged);
             }
             else
@@ -126,7 +126,7 @@ namespace Veeb.Controllers
 
         // GET: kasutaja/get-current
         [HttpGet("get-current")]
-        public IActionResult GetCurrent() => DB.Kasutajad.ElementOrDefault(currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.ElementOrDefault(currentKasutajaId));
+        public IActionResult GetCurrent() => DB.Kasutajad.Where(x => x.Id == currentKasutajaId) == null ? NotFound(new { message = "Kasutajat ei leitud" }) : Ok(DB.Kasutajad.Where(x => x.Id == currentKasutajaId));
 
         // GET: kasutaja/is-auth
         [HttpGet("is-auth")]

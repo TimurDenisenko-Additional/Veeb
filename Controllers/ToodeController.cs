@@ -54,13 +54,15 @@ namespace Veeb.Controllers
 
         // GET: toode/suurenda-hinda/id/price
         [HttpPatch("suurenda-hinda/{id}/{price}")]
-        public async Task<List<Toode>> SuurendaHinda(int id, float price)
+        public async Task<IActionResult> SuurendaHinda(int id, float price)
         {
-            Toode toode = await DB.Tooded.ElementOrDefault(id) ?? new Toode();
+            Toode toode = await DB.Tooded.ElementOrDefault(id);
             if (toode.Id != -1)
-                toode.Price += price;
-            DB.SaveChanges();
-            return [.. DB.Tooded];
+            {
+                toode.Price += price;    
+            }
+            await DB.SaveChangesAsync();
+            return Ok(await DB.Tooded.ToListAsync());
         }
 
         // GET: toode/change-active/id
